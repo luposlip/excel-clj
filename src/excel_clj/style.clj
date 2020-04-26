@@ -62,9 +62,10 @@
             [clojure.reflect :as reflect]
             [rhizome.viz :as viz])
   (:import (org.apache.poi.ss.usermodel
-             DataFormat BorderStyle HorizontalAlignment FontUnderline
-             FillPatternType Workbook)
-           (org.apache.poi.xssf.usermodel XSSFColor DefaultIndexedColorMap XSSFCell)))
+             DataFormat BorderStyle HorizontalAlignment VerticalAlignment
+             FillPatternType Workbook VerticalAlignment FontUnderline CellStyle)
+           (org.apache.poi.xssf.usermodel XSSFColor DefaultIndexedColorMap
+                                          XSSFCell XSSFCellStyle XSSFFont XSSFWorkbook)))
 
 ;;; Code to allow specification of Excel CellStyle objects as nested maps. You
 ;;; might touch this code to add an implementation of `coerce-to-obj` for some
@@ -126,6 +127,13 @@
    :justify          HorizontalAlignment/JUSTIFY
    :center-selection HorizontalAlignment/CENTER_SELECTION
    :distributed      HorizontalAlignment/DISTRIBUTED})
+
+(def valignments
+  {:top         VerticalAlignment/TOP
+   :center      VerticalAlignment/CENTER
+   :bottom      VerticalAlignment/BOTTOM
+   :justify     VerticalAlignment/JUSTIFY
+   :distributed VerticalAlignment/DISTRIBUTED})
 
 (def underlines
   {:single            FontUnderline/SINGLE
@@ -194,6 +202,7 @@
    :black  (rgb-color 0 0 0)})
 
 (coerce-from-map :alignment alignments)
+(coerce-from-map :vertical-alignment valignments)
 (coerce-from-map :underline underlines)
 (coerce-from-map :border-top borders)
 (coerce-from-map :border-left borders)
@@ -217,7 +226,7 @@
 
 (defmethod coerce-to-obj :font
   [^Workbook wb _ font-attrs]
-  (do-set-all! (.createFont wb) font-attrs))
+  (do-set-all! ^XSSFFont (.createFont wb) font-attrs))
 
 (defmethod coerce-to-obj :data-format
   [^Workbook wb _ format]
@@ -265,9 +274,9 @@
   implementation is provided for some attribute (e.g. :font), the attribute can
   be specified as data."
   [^Workbook workbook attrs]
-  (let [attrs' (coerce-nested-to-obj workbook attrs)]
+  (let [attrs' (coerce-nested-to-obj ^XSSFWorkbook workbook attrs)]
     (try
-      (do-set-all! (.createCellStyle workbook) attrs')
+      (do-set-all! ^XSSFCellStyle (.createCellStyle workbook) attrs')
       (catch Exception e
         (-> "Failed to create cell style."
             (ex-info {:raw-attributes attrs :built-attributes attrs'} e)
