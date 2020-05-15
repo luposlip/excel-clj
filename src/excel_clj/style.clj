@@ -59,13 +59,12 @@
             workbook :font {:bold true :font-height-in-points 10}))))"
   {:author "Matthew Downey"}
   (:require [clojure.string :as string]
-            [clojure.reflect :as reflect]
-            [rhizome.viz :as viz])
+            [clojure.reflect :as reflect])
   (:import (org.apache.poi.ss.usermodel
-             DataFormat BorderStyle HorizontalAlignment FontUnderline
-             FillPatternType)
+            DataFormat BorderStyle HorizontalAlignment FontUnderline
+            FillPatternType)
            (org.apache.poi.xssf.usermodel
-             XSSFWorkbook XSSFColor DefaultIndexedColorMap XSSFCell)))
+            XSSFWorkbook XSSFColor DefaultIndexedColorMap XSSFCell)))
 
 ;;; Code to allow specification of Excel CellStyle objects as nested maps. You
 ;;; might touch this code to add an implementation of `coerce-to-obj` for some
@@ -345,18 +344,3 @@
   {0 {:font {:bold true} :border-top :medium}
    1 {:border-top :thin :border-bottom :thin}})
 
-(defn example
-  "If one wanted to visualize all of the nested setters & POI objects...
-  Keep in mind that this requires $ apt-get install graphviz"
-  []
-  (let [param-type (fn [setter] (resolve (first (:parameter-types setter))))
-        is-setter? (fn [{:keys [name parameter-types]}]
-                     (and (string/starts-with? (str name) "set")
-                          (= 1 (count parameter-types))))
-        setters (fn [class]
-                  (filter is-setter? (#'reflect/declared-methods class)))
-        cell-style (first
-                     (filter #(= 'setCellStyle (:name %)) (setters XSSFCell)))]
-    (viz/view-tree
-      #(instance? Class (param-type %)) (comp setters param-type) cell-style
-      :node->descriptor #(->{:label ((juxt :name :parameter-types) %)}))))

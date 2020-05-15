@@ -15,10 +15,7 @@
             [excel-clj.prototype :as pt]
             [clojure.string :as string]
             [clojure.java.io :as io])
-  (:import (java.io File)
-           (java.awt Desktop HeadlessException)
-           (org.jodconverter.office DefaultOfficeManagerBuilder)
-           (org.jodconverter OfficeDocumentConverter)))
+  (:import java.io.File))
 
 (set! *warn-on-reflection* true)
 
@@ -173,105 +170,24 @@
                              (pt/dims {:width width :height height}))))
         convert-row (fn [row] (map convert-cell row))]
     (pt/write!
-      (map (fn [[sheet grid]] [sheet (map convert-row grid)]) workbook)
-      path)))
-
-(defn convert-pdf!
-  "Convert the `from-document`, either a File or a path to any office document,
-  to pdf format and write the pdf to the given pdf-path.
-
-  Requires OpenOffice. See https://github.com/sbraconnier/jodconverter.
-
-  Returns a File pointing at the PDF."
-  [from-document pdf-path]
-  (let [path (force-extension pdf-path "pdf")
-        office-manager (.build (DefaultOfficeManagerBuilder.))]
-    (.start office-manager)
-    (try
-      (let [document-converter (OfficeDocumentConverter. office-manager)]
-        (.convert document-converter (io/file from-document) (io/file path)))
-      (finally
-        (.stop office-manager)))
-    (io/file path)))
-
-(defn write-pdf!
-  "Write the workbook to the given filename and return a file object pointing
-  at the written file.
-
-  Requires OpenOffice. See https://github.com/sbraconnier/jodconverter.
-
-  The workbook is a key value collection of (sheet-name grid), either as map or
-  an association list (if ordering is important)."
-  [workbook path]
-  (let [temp-path (temp ".xlsx")
-        pdf-file (convert-pdf! (write! workbook temp-path) path)]
-    (.delete (io/file temp-path))
-    pdf-file))
-
-(defn open
-  "Open the given file path with the default program."
-  [file-path]
-  (try
-    (let [f (io/file file-path)]
-      (.open (Desktop/getDesktop) f)
-      f)
-    (catch HeadlessException e
-      (throw (ex-info "There's no desktop." {:opening file-path} e)))))
-
-(defn quick-open
-  "Write a workbook to a temp file & open it. Useful for quick repl viewing."
-  [workbook]
-  (open (write! workbook (temp ".xlsx"))))
-
-(defn quick-open-pdf
-  "Write a workbook to a temp file as a pdf & open it. Useful for quick repl
-  viewing."
-  [workbook]
-  (open (write-pdf! workbook (temp ".pdf"))))
+     (map (fn [[sheet grid]] [sheet (map convert-row grid)]) workbook)
+     path)))
 
 (def example-workbook-data
   {"Tree Sheet"
-     (tree
-       ["Mock Balance Sheet for the year ending Dec 31st, 2018"
-        tree/mock-balance-sheet])
+   (tree
+    ["Mock Balance Sheet for the year ending Dec 31st, 2018"
+     tree/mock-balance-sheet])
 
-     "Tabular Sheet"
-     (table
-       [{"Date" "2018-01-01" "% Return" 0.05M "USD" 1500.5005M}
-        {"Date" "2018-02-01" "% Return" 0.04M "USD" 1300.20M}
-        {"Date" "2018-03-01" "% Return" 0.07M "USD" 2100.66666666M}])
+   "Tabular Sheet"
+   (table
+    [{"Date" "2018-01-01" "% Return" 0.05M "USD" 1500.5005M}
+     {"Date" "2018-02-01" "% Return" 0.04M "USD" 1300.20M}
+     {"Date" "2018-03-01" "% Return" 0.07M "USD" 2100.66666666M}])
 
-     "Freeform Grid Sheet"
-     [["First" "Second" {:value "Wide" :width 2} {:value "Wider" :width 3}]
-      ["First Column Value" "Second Column Value"]
-      ["This" "Row" "Has" "Its" "Own"
-       {:value "Format" :style {:font {:bold true}}}]]})
+   "Freeform Grid Sheet"
+   [["First" "Second" {:value "Wide" :width 2} {:value "Wider" :width 3}]
+    ["First Column Value" "Second Column Value"]
+    ["This" "Row" "Has" "Its" "Own"
+     {:value "Format" :style {:font {:bold true}}}]]})
 
-(defn example []
-  (quick-open example-workbook-data))
-
-(comment
-  ;; This should open an Excel workbook
-  (example)
-
-  ;; This will both open an example excel sheet and write & open a test pdf file
-  ;; with the same contents. On platforms without OpenOffice the convert-pdf!
-  ;; call will most likely fail.
-  (open (convert-pdf! (example) (temp ".pdf")))
-
-  ;; Expose ordering / styling issues in v1.2.X
-  (quick-open {"Test" (table
-                        (for [x (range 10000)]
-                          {"N" x, "N^2" (* x x), "N^3" (* x x x)}))})
-
-  ;; Ballpark performance test
-  (dotimes [_ 5]
-    (time
-      (write!
-        [["Test"
-          (table
-            (for [x (range 100000)]
-              {"N" x "N^2" (* x x) "N^3" (* x x x)}))]]
-        "test.xlsx")))
-
-  )

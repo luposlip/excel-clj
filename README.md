@@ -1,6 +1,6 @@
 # excel-clj
 
-Declarative generation of Excel documents & PDFs with Clojure from higher level 
+Declarative generation of Excel documents with Clojure from higher level 
 abstractions (tree, table) or via a manual grid specification, with boilerplate-free 
 common sense styling.
 
@@ -8,13 +8,12 @@ common sense styling.
 
 Lein:
 ```
-[org.clojars.mjdowney/excel-clj "1.3.2"]
+[luposlip/excel-clj "1.4.0"]
 ```
 
 - [Getting Started](#getting-started)
     - [Tables](#tables)
     - [Trees](#trees)
-    - [PDF Generation](#pdf-generation)
     - [Table Styling](#table-styling)
     - [Tree Styling](#tree-styling)
     - [Manual Styling](#manual-styling)
@@ -54,7 +53,7 @@ is a common abstraction that we impose on our data.
 (let [;; A workbook is any [key value] seq of [sheet-name, sheet-grid].
       ;; Convert the table to a grid with the table function.
       workbook {"My Generated Sheet" (excel/table table-data)}]
-  (excel/quick-open workbook))
+  (excel/write! workbook))
 ```
 
 ![An excel sheet is opened](resources/quick-open-table.png)
@@ -87,7 +86,7 @@ the balances corresponding to an account hierarchy.
        [["Common Stock" {2018 102M, 2017 80M}]]]]]]])
 
 => #'user/balance-sheet
-(excel/quick-open {"Balance Sheet" (excel/tree balance-sheet)})
+(excel/write! {"Balance Sheet" (excel/tree balance-sheet)})
 ```
 
 ![An excel sheet is opened](resources/quick-open-tree.png)
@@ -110,25 +109,11 @@ We could make a tree for some part of our file system for example:
             [(.getName f) {:size (.length f)}]
             [(str (.getName f) "/") xs]))
         #(.isDirectory %) #(.listFiles %) (io/file "."))]
-  (excel/quick-open 
+  (excel/write! 
     {"Source Tree" (excel/tree ["Source" [src-tree]] :data-format :number)}))
 ```
 
 ![An excel sheet is opened](resources/file-tree.png)
-
-
-### PDF Generation
-
-If you're on a system that uses an OpenOffice implementation of Excel, PDF 
-generation is similarly simple.
-
-```clojure
-(excel/quick-open-pdf 
-  {"Mock Balance Sheet" (excel/tree balance-sheet) 
-   "Some Table Data" (excel/table table-data)})
-```
-
-![A PDF is opened](resources/quick-open-pdf.png)
 
 
 ### Table Styling
@@ -149,7 +134,7 @@ For instance, to highlight rows in our table where percent return is less than
           (when (< (row-data "% Return") 0.05M)
             {:fill-pattern :solid-foreground
              :fill-foreground-color :yellow}))]
-  (excel/quick-open
+  (excel/write!
     {"My Generated Sheet" (excel/table table-data :data-style highlight-below-5%)}))
 ```
 
@@ -202,7 +187,7 @@ that includes optional style data / cell merging instructions.
 
 ```clojure
 (let [title-style {:font {:bold true :font-height-in-points 10} :alignment :center}]
-  (excel/quick-open 
+  (excel/write!
     {"Some Grid" 
      [ [{:value "This is a Title" :width 5 :style title-style}] ;; Title row
        ["This" "Is" "A" "Row"] ;; Another row
@@ -211,29 +196,6 @@ that includes optional style data / cell merging instructions.
 
 ![A spreadsheet with a merged title](resources/manual-grid.png)
 
-## v2.0.0 Roadmap
-- A higher-level interface that allows wrapping side-effecting code in a `view`
-  or a `write` macro to redirect any `clojure.pprint/print-table` effects into
-  a spreadsheet.
-  - Likewise, an improved `pprint` for trees that works under the same abstraction.
-  - Sheet names can be specified via meta data.
-- Performance improvements. Right now, performance starts to break down after 
-  about 100,000 rows on my Ubuntu / OpenOffice setup, and much sooner on Mac.
-  - Rework the lower-level interface to take full advantage of laziness, where 
-    possible.
-  - Rethink the way formatting is handled.
-  - Check if it ends up being more performant to write a chunk of the file, and
-    then re-open it to write the next chunk. This will have to do with Apache 
-    POIs way of dealing with memory, so I'll have to investigate that first.
-- Templates which provide an easy way to work with formulas and styling. The 
-  planned functionality is simple: instead of overwriting a document, allow
-  overwriting a single sheet within the document.
-  - Then to create a template, you just make a .xlsx file, or download
-    [some cool Google Sheets template](https://docs.google.com/spreadsheets/u/0/?usp=mkt_sheets_tpl),
-    with multiple sheets.
-  - Some of the sheets are _only_ source data, which we'll write to programatically,
-    and other sheets depend on those source sheets (via formulas, macros, etc.).
-- Tentatively: a Java wrapper or some RPC interface for other languages to use 
-  the functionality of this library, maybe by passing in JSON tables / trees? 
-  Though "start-writing" and "stop-wrting" commands with lines of data in between 
-  might be more practical.
+## Roadmap
+
+None per se for this library, but Matthew has a lot of good ideas with his library, check it out! :)

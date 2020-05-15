@@ -5,10 +5,7 @@
             [clojure.java.io :as io]
             [clojure.string :as string]
             [taoensso.encore :as enc])
-  (:import (java.io File)
-           (org.jodconverter.office DefaultOfficeManagerBuilder)
-           (org.jodconverter OfficeDocumentConverter)
-           (java.awt Desktop HeadlessException)))
+  (:import java.io.File))
 
 
 (set! *warn-on-reflection* true)
@@ -141,81 +138,3 @@
   "Return a (string) path to a temp file with the given extension."
   [ext]
   (-> (File/createTempFile "generated-sheet" ext) .getCanonicalPath))
-
-
-(defn- convert-pdf!
-  "Convert the `from-document`, either a File or a path to any office document,
-  to pdf format and write the pdf to the given pdf-path.
-
-  Requires OpenOffice. See https://github.com/sbraconnier/jodconverter.
-
-  Returns a File pointing at the PDF."
-  [from-document pdf-path]
-  (let [path (force-extension pdf-path "pdf")
-        office-manager (.build (DefaultOfficeManagerBuilder.))]
-    (.start office-manager)
-    (try
-      (let [document-converter (OfficeDocumentConverter. office-manager)]
-        (.convert document-converter (io/file from-document) (io/file path)))
-      (finally
-        (.stop office-manager)))
-    (io/file path)))
-
-
-(defn write-pdf!
-  "Write the workbook to the given filename and return a file object pointing
-  at the written file.
-
-  Requires OpenOffice. See https://github.com/sbraconnier/jodconverter.
-
-  The workbook is a key value collection of (sheet-name grid), either as map or
-  an association list (if ordering is important)."
-  [workbook path]
-  (let [temp-path (temp ".xlsx")
-        pdf-file (convert-pdf! (write! workbook temp-path) path)]
-    (.delete (io/file temp-path))
-    pdf-file))
-
-
-(defn open
-  "Open the given file path with the default program."
-  [file-path]
-  (try
-    (let [f (io/file file-path)]
-      (.open (Desktop/getDesktop) f)
-      f)
-    (catch HeadlessException e
-      (throw (ex-info "There's no desktop." {:opening file-path} e)))))
-
-
-(defn quick-open
-  "Write a workbook to a temp file & open it. Useful for quick repl viewing."
-  [workbook]
-  (open (write! workbook (temp ".xlsx"))))
-
-
-(defn quick-open-pdf
-  "Write a workbook to a temp file as a pdf & open it. Useful for quick repl
-  viewing."
-  [workbook]
-  (open (write-pdf! workbook (temp ".pdf"))))
-
-
-(comment
-
-
-  ;; Ballpark performance test
-  (dotimes [_ 5]
-    (time
-      (let [header-style {:border-bottom :thin :font {:bold true}}
-            headers (map #(cell/style % header-style) ["N0" "N1" "N2"])]
-        (write!
-          [["Test" (cons headers (for [x (range 100000)] [x (str x) x]))]]
-          "test.xlsx"))))
-  ; "Elapsed time: 5484.565899 msecs"
-  ; "Elapsed time: 5302.312954 msecs"
-  ; "Elapsed time: 4656.451894 msecs"
-  ; "Elapsed time: 4734.160618 msecs"
-  ; "Elapsed time: 5753.986336 msecs"
-
-  )

@@ -8,8 +8,7 @@
   (:require [clojure.java.io :as io]
             [taoensso.encore :as enc]
             [excel-clj.style :as style]
-            [clojure.walk :as walk]
-            [taoensso.tufte :as tufte])
+            [clojure.walk :as walk])
   (:import (org.apache.poi.xssf.usermodel XSSFWorkbook XSSFRow XSSFSheet)
            (java.io Closeable)
            (org.apache.poi.ss.usermodel RichTextString Cell)
@@ -110,7 +109,7 @@
 
 
 (defrecord ^:private SheetWriter
-  [cell-style-cache ^XSSFSheet sheet row row-cursor col-cursor]
+    [cell-style-cache ^XSSFSheet sheet row row-cursor col-cursor]
   IWorksheetWriter
   (write! [this value]
     (write! this value nil 1 1))
@@ -126,16 +125,14 @@
         (vswap! col-cursor + (dec width))
         (let [ridx @row-cursor
               cra (CellRangeAddress.
-                    ridx (dec (+ ridx height))
-                    cidx (dec (+ cidx width)))]
+                   ridx (dec (+ ridx height))
+                   cidx (dec (+ cidx width)))]
           (.addMergedRegion sheet cra)))
 
-      (tufte/p :write-cell
-        (write-cell! poi-cell value))
+      (write-cell! poi-cell value)
 
       (when-let [cell-style (cell-style-cache style)]
-        (tufte/p :style-cell
-          (.setCellStyle poi-cell cell-style))))
+        (.setCellStyle poi-cell cell-style)))
 
     this)
 
@@ -145,16 +142,15 @@
     this)
 
   (autosize!! [this idx]
-    (tufte/p :auto-size (.autoSizeColumn sheet idx)))
+    (.autoSizeColumn sheet idx))
 
   (sheet* [this]
     sheet)
 
   Closeable
   (close [this]
-    (tufte/p :set-print-settings
-       (.setFitToPage sheet true)
-       (.setFitWidth (.getPrintSetup sheet) 1))
+    (.setFitToPage sheet true)
+    (.setFitWidth (.getPrintSetup sheet) 1)
     this))
 
 
@@ -165,10 +161,9 @@
 
   Closeable
   (close [this]
-    (tufte/p :write-to-disk
-      (with-open [fos (io/output-stream (io/file path))]
-        (.write workbook fos)
-        (.close workbook)))))
+    (with-open [fos (io/output-stream (io/file path))]
+      (.write workbook fos)
+      (.close workbook))))
 
 
 (defn ^SheetWriter sheet-writer
@@ -252,14 +247,3 @@
 
     (println "Wrote file after" (- (System/currentTimeMillis) start) "ms")))
 
-
-(comment
-  (tufte/add-basic-println-handler! {})
-  (performance-test "test.xlsx" 1000) ; 103ms
-  (tufte/profile {} (performance-test "test.xlsx" 10000)) ; 385ms
-  (tufte/profile {} (performance-test "test.xlsx" 100000)) ; 4503ms
-  (performance-test "test.xlsx" 150000) ; 9572ms
-  (performance-test "test.xlsx" 200000) ; 11320ms
-  (performance-test "test.xlsx" 300000) ; 19939ms
-  (performance-test "test.xlsx" 350000) ; OOM error... haha
-  )

@@ -1,5 +1,9 @@
 # Change Log
 
+## [1.4.0] = 2020-05-15
+### Changed
+- A slimmed & trimmed down version of the original library from Matthew. Away is the Viz dependency and the potential X11 display issue, but also the ability to create PDF documents from the Excel files.
+
 ## [1.3.2] - 2020-04-15
 ### Fixed
 - Bug introduced in v1.3.1 where adjacent cells with width > 1 cause an 
