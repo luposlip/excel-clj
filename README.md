@@ -1,5 +1,8 @@
 # excel-clj
 
+_Just a dependency-trimmed version of the work done here:
+https://github.com/matthewdowney/excel-clj_
+
 Declarative generation of Excel documents with Clojure from higher level 
 abstractions (tree, table) or via a manual grid specification, with boilerplate-free 
 common sense styling.
